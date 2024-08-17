@@ -1,6 +1,8 @@
 package com.julio.Financial.management.domain.user;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotEmpty;
+import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -13,10 +15,15 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(length = 20, nullable = false)
     private String firstName;
+
+    @Column(length = 20, nullable = false)
     private String lastName;
+
     @Column(unique = true, nullable = false)
     private String email;
+    @Column(nullable = false)
     private String password;
 
     public User(){}
