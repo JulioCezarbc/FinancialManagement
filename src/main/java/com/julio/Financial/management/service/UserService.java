@@ -54,15 +54,28 @@ public class UserService {
         return user;
     }
 
-    public User updateUser (UUID id, UserDTO userDTO){
+    public UserDTO updateUser(UUID id, UserDTO userDTO) {
         User userUpdate = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with id: " + id + " not found"));
+
+        Optional<User> existingUser = repository.findByEmail(userDTO.email());
+        if (existingUser.isPresent() && !existingUser.get().getId().equals(id)) {
+            throw new IllegalArgumentException("Email already in use");
+        }
 
         userUpdate.setFirstName(userDTO.firstName());
         userUpdate.setLastName(userDTO.lastName());
         userUpdate.setEmail(userDTO.email());
-        return repository.save(userUpdate);
+
+        userUpdate = repository.save(userUpdate);
+
+        return new UserDTO(
+                userUpdate.getFirstName(),
+                userUpdate.getLastName(),
+                userUpdate.getEmail()
+        );
     }
+
 
     public void deleteUser (UUID id){
         if (!repository.existsById(id)){
