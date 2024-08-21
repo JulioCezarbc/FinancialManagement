@@ -1,9 +1,7 @@
 package com.julio.Financial.management.domain.user;
 
+import com.julio.Financial.management.domain.enumerated.Role;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotEmpty;
-import org.antlr.v4.runtime.misc.NotNull;
-
 import java.util.Objects;
 import java.util.UUID;
 
@@ -25,6 +23,9 @@ public class User {
     private String email;
     @Column(nullable = false)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.USER;
 
     public User(){}
 
@@ -66,6 +67,14 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     @Override

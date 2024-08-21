@@ -1,12 +1,11 @@
 package com.julio.Financial.management.service;
 
-import com.julio.Financial.management.DTO.LoginUserDTO;
-import com.julio.Financial.management.DTO.RegisterUserDTO;
 import com.julio.Financial.management.DTO.UserDTO;
 import com.julio.Financial.management.domain.user.User;
 import com.julio.Financial.management.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,27 +32,6 @@ public class UserService {
         User user = repository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException(("User with email: " + email + " not found")));
         return new UserDTO(user.getFirstName(), user.getLastName(), user.getEmail());
     }
-
-    public User registerUser(RegisterUserDTO registerUser) {
-        User user = new User();
-        user.setFirstName(registerUser.firstName());
-        user.setLastName(registerUser.lastName());
-        user.setEmail(registerUser.email());
-        user.setPassword(registerUser.password());
-
-        return repository.save(user);
-    }
-
-    public User loginUser(LoginUserDTO loginUser) {
-        User user = repository.findByEmail(loginUser.email())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        if (!loginUser.password().equals(user.getPassword())) {
-            throw new IllegalArgumentException("User with credentials incorrect");
-        }
-        return user;
-    }
-
     public UserDTO updateUser(UUID id, UserDTO userDTO) {
         User userUpdate = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with id: " + id + " not found"));
@@ -75,8 +53,7 @@ public class UserService {
                 userUpdate.getEmail()
         );
     }
-
-
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void deleteUser (UUID id){
         if (!repository.existsById(id)){
             throw new EntityNotFoundException("User with id: " + id + " not found");
