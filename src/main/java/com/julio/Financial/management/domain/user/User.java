@@ -2,6 +2,8 @@ package com.julio.Financial.management.domain.user;
 
 import com.julio.Financial.management.domain.enumerated.Role;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+
 import java.util.Objects;
 import java.util.UUID;
 
@@ -20,6 +22,7 @@ public class User {
     private String lastName;
 
     @Column(unique = true, nullable = false)
+    @Email
     private String email;
     @Column(nullable = false)
     private String password;
