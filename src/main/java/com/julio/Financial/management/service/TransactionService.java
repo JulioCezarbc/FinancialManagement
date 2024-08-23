@@ -1,5 +1,6 @@
 package com.julio.Financial.management.service;
 
+import com.julio.Financial.management.DTO.SummaryDTO;
 import com.julio.Financial.management.DTO.TransactionDTO;
 import com.julio.Financial.management.domain.transaction.Transaction;
 import com.julio.Financial.management.domain.user.User;
@@ -11,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestHeader;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,17 +28,15 @@ public class TransactionService {
     private TokenService tokenService;
 
 
-    public List<TransactionDTO> findAll(@RequestHeader("Authorization") String token){
-        String jwtToken = token.replace("Bearer ", "");
-        String email = tokenService.validateToken(jwtToken);
+    public List<TransactionDTO> findAll(String token){
+        User user = getUserFromToken(token);
 
-        User user = userRepository.findByEmail(email).orElseThrow( ()-> new EntityNotFoundException("User not found"));
         List<Transaction> transactions;
 
         if (user.getRole().name().equalsIgnoreCase("admin")){
             transactions = repository.findAll();
         }else {
-            transactions = repository.findByUserEmail(email);
+            transactions = repository.findByUserEmail(user.getEmail());
         }
         return transactions.stream().map(transaction -> new TransactionDTO(transaction.getType(), transaction.getPayment(), transaction.getAmount(),
                 transaction.getDescription(),transaction.getTimestamp(),transaction.getUser().getEmail())).toList();
@@ -48,8 +49,30 @@ public class TransactionService {
                 transaction.getDescription(),transaction.getTimestamp(),transaction.getUser().getEmail());
     }
 
+    public SummaryDTO calculateSummary(LocalDate startDate, LocalDate endDate, String token) {
+        User user = getUserFromToken(token);
+
+        List<Transaction> transactions = repository.findByTimestamp(user.getEmail(), startDate, endDate);
+
+
+        BigDecimal income = transactions.stream()
+                .filter(transaction -> transaction.getType().name().equalsIgnoreCase("income"))
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+
+
+        BigDecimal expense = transactions.stream()
+                .filter(transaction -> transaction.getType().name().equalsIgnoreCase("expense"))
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new SummaryDTO(income, expense);
+    }
+
+
     @Transactional
-    public TransactionDTO createTransaction(TransactionDTO transactionDTO, @RequestHeader("Authorization") String token){
+    public TransactionDTO createTransaction(TransactionDTO transactionDTO,String token){
         Transaction transaction = new Transaction();
         transaction.setType(transactionDTO.type());
         transaction.setPayment(transactionDTO.payment());
@@ -57,10 +80,8 @@ public class TransactionService {
         transaction.setDescription(transactionDTO.description());
         transaction.setTimestamp(transactionDTO.timestamp());
 
-        String jwtToken = token.replace("Bearer ", "");
-        String email = tokenService.validateToken(jwtToken);
+        User user = getUserFromToken(token);
 
-        User user = userRepository.findByEmail(email).orElseThrow( ()-> new EntityNotFoundException("User not found"));
         transaction.setUser(user);
 
         repository.save(transaction);
@@ -71,13 +92,13 @@ public class TransactionService {
                 transaction.getAmount(),
                 transaction.getDescription(),
                 transaction.getTimestamp(),
-                email
+                user.getEmail()
         );
 
     }
 
     @Transactional
-    public TransactionDTO updateTransaction(UUID uuid, TransactionDTO transactionDTO, @RequestHeader("Authorization") String token){
+    public TransactionDTO updateTransaction(UUID uuid, TransactionDTO transactionDTO,String token){
         Transaction transactionUpdate = repository.findById(uuid).orElseThrow(() -> new EntityNotFoundException("Transaction with id: " + uuid + " not found"));
 
         transactionUpdate.setType(transactionDTO.type());
@@ -85,10 +106,9 @@ public class TransactionService {
         transactionUpdate.setAmount(transactionDTO.amount());
         transactionUpdate.setDescription(transactionDTO.description());
         transactionUpdate.setTimestamp(transactionDTO.timestamp());
-        String jwtToken = token.replace("Bearer ", "");
-        String email = tokenService.validateToken(jwtToken);
 
-        User user = userRepository.findByEmail(email).orElseThrow( ()-> new EntityNotFoundException("User not found"));
+        User user = getUserFromToken(token);
+
         transactionUpdate.setUser(user);
 
         transactionUpdate = repository.save(transactionUpdate);
@@ -104,17 +124,23 @@ public class TransactionService {
     }
 
     @Transactional
-    public void deleteTransaction(UUID id, @RequestHeader("Authorization") String token){
+    public void deleteTransaction(UUID id,String token){
         Transaction transaction = repository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Transaction with id: " + id + " not found"));
 
-        String jwtToken = token.replace("Bearer ", "");
-        String email = tokenService.validateToken(jwtToken);
+        User user = getUserFromToken(token);
 
-        if (!transaction.getUser().getEmail().equals(email) &&
+        if (!transaction.getUser().getEmail().equals(user.getEmail()) &&
                 !transaction.getUser().getRole().name().equalsIgnoreCase("admin")) {
             throw new SecurityException("You do not have permission to delete this transaction");
         }
         repository.deleteById(id);
     }
+
+    private User getUserFromToken(String token) {
+        String jwtToken = token.replace("Bearer ", "");
+        String email = tokenService.validateToken(jwtToken);
+        return userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+    }
+
 }
