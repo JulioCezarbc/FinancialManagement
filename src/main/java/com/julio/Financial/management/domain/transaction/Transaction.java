@@ -1,7 +1,6 @@
 package com.julio.Financial.management.domain.transaction;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.annotation.JsonAppend;
 import com.julio.Financial.management.domain.enumerated.TransactionType;
 import com.julio.Financial.management.domain.user.User;
 import jakarta.persistence.*;
@@ -10,7 +9,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -25,6 +23,7 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionType type;
 
+    @Size(min = 2, max = 30)
     private String payment;
 
     @Column(nullable = false)
