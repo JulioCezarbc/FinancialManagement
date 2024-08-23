@@ -34,8 +34,8 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.updateTransaction(id, transactionDTO, token));
     }
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTransaction(@PathVariable UUID id){
-        transactionService.deleteTransaction(id);
+    public ResponseEntity<Void> deleteTransaction(@PathVariable UUID id, @RequestHeader("Authorization") String token){
+        transactionService.deleteTransaction(id, token);
         return ResponseEntity.noContent().build();
     }
 }

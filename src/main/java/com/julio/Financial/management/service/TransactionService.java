@@ -104,9 +104,16 @@ public class TransactionService {
     }
 
     @Transactional
-    public void deleteTransaction(UUID id){
-        if (!repository.existsById(id)){
-            throw new EntityNotFoundException("Transaction with id: " + id + " not found");
+    public void deleteTransaction(UUID id, @RequestHeader("Authorization") String token){
+        Transaction transaction = repository.findById(id).orElseThrow(() ->
+                new EntityNotFoundException("Transaction with id: " + id + " not found"));
+
+        String jwtToken = token.replace("Bearer ", "");
+        String email = tokenService.validateToken(jwtToken);
+
+        if (!transaction.getUser().getEmail().equals(email) &&
+                !transaction.getUser().getRole().name().equalsIgnoreCase("admin")) {
+            throw new SecurityException("You do not have permission to delete this transaction");
         }
         repository.deleteById(id);
     }
