@@ -5,6 +5,8 @@ import com.julio.Financial.management.DTO.RegisterUserDTO;
 import com.julio.Financial.management.DTO.ResponseDTO;
 import com.julio.Financial.management.domain.enumerated.Role;
 import com.julio.Financial.management.domain.user.User;
+import com.julio.Financial.management.exceptions.EmailAlreadyInUse;
+import com.julio.Financial.management.exceptions.UserNotFoundException;
 import com.julio.Financial.management.service.TokenService;
 import com.julio.Financial.management.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,19 +32,22 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ResponseDTO> login(@RequestBody LoginUserDTO loginUser) {
-        User user = userRepository.findByEmail(loginUser.email()).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(loginUser.email()).orElseThrow(UserNotFoundException::new);
 
         if (passwordEncoder.matches(loginUser.password(), user.getPassword())) {
             String token = tokenService.generateToken(user);
             return ResponseEntity.ok(new ResponseDTO(user.getEmail(), token));
         }
-        return ResponseEntity.badRequest().build();
+        return ResponseEntity.status(401).build();
     }
     @PostMapping("/register")
     public ResponseEntity<ResponseDTO> register(@RequestBody RegisterUserDTO registerUser) {
         Optional<User> user = userRepository.findByEmail(registerUser.email());
 
-        if (user.isEmpty()) {
+        if (user.isPresent() ) {
+            throw new EmailAlreadyInUse();
+        }
+
             User newUser = new User();
             newUser.setFirstName(registerUser.firstName());
             newUser.setLastName(registerUser.lastName());
@@ -53,7 +58,6 @@ public class AuthController {
 
             String token = tokenService.generateToken(newUser);
             return ResponseEntity.ok(new ResponseDTO(newUser.getEmail(), token));
-        }
-        return ResponseEntity.badRequest().build();
+
     }
 }

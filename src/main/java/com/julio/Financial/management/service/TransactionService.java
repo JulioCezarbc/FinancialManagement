@@ -4,13 +4,14 @@ import com.julio.Financial.management.DTO.SummaryDTO;
 import com.julio.Financial.management.DTO.TransactionDTO;
 import com.julio.Financial.management.domain.transaction.Transaction;
 import com.julio.Financial.management.domain.user.User;
+import com.julio.Financial.management.exceptions.PermissionDenied;
+import com.julio.Financial.management.exceptions.TransactionNotFound;
+import com.julio.Financial.management.exceptions.UserNotFoundException;
 import com.julio.Financial.management.repository.TransactionRepository;
 import com.julio.Financial.management.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -44,7 +45,7 @@ public class TransactionService {
     }
 
     public TransactionDTO findById(UUID id){
-        Transaction transaction =repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Not found transaction with id : " + id));
+        Transaction transaction =repository.findById(id).orElseThrow(TransactionNotFound::new);
         return new TransactionDTO(transaction.getType(), transaction.getPayment(), transaction.getAmount(),
                 transaction.getDescription(),transaction.getTimestamp(),transaction.getUser().getEmail());
     }
@@ -99,7 +100,14 @@ public class TransactionService {
 
     @Transactional
     public TransactionDTO updateTransaction(UUID uuid, TransactionDTO transactionDTO,String token){
-        Transaction transactionUpdate = repository.findById(uuid).orElseThrow(() -> new EntityNotFoundException("Transaction with id: " + uuid + " not found"));
+        Transaction transactionUpdate = repository.findById(uuid).orElseThrow(TransactionNotFound::new);
+
+        User user = getUserFromToken(token);
+
+        if (!transactionUpdate.getUser().getEmail().equals(user.getEmail()) &&
+                !user.getRole().name().equalsIgnoreCase("admin")) {
+            throw new PermissionDenied();
+        }
 
         transactionUpdate.setType(transactionDTO.type());
         transactionUpdate.setPayment(transactionDTO.payment());
@@ -107,7 +115,6 @@ public class TransactionService {
         transactionUpdate.setDescription(transactionDTO.description());
         transactionUpdate.setTimestamp(transactionDTO.timestamp());
 
-        User user = getUserFromToken(token);
 
         transactionUpdate.setUser(user);
 
@@ -125,14 +132,13 @@ public class TransactionService {
 
     @Transactional
     public void deleteTransaction(UUID id,String token){
-        Transaction transaction = repository.findById(id).orElseThrow(() ->
-                new EntityNotFoundException("Transaction with id: " + id + " not found"));
+        Transaction transaction = repository.findById(id).orElseThrow(TransactionNotFound::new);
 
         User user = getUserFromToken(token);
 
         if (!transaction.getUser().getEmail().equals(user.getEmail()) &&
                 !transaction.getUser().getRole().name().equalsIgnoreCase("admin")) {
-            throw new SecurityException("You do not have permission to delete this transaction");
+            throw new PermissionDenied();
         }
         repository.deleteById(id);
     }
@@ -140,7 +146,7 @@ public class TransactionService {
     private User getUserFromToken(String token) {
         String jwtToken = token.replace("Bearer ", "");
         String email = tokenService.validateToken(jwtToken);
-        return userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
     }
 
 }

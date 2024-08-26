@@ -2,8 +2,10 @@ package com.julio.Financial.management.service;
 
 import com.julio.Financial.management.DTO.UserDTO;
 import com.julio.Financial.management.domain.user.User;
+import com.julio.Financial.management.exceptions.EmailAlreadyInUse;
+import com.julio.Financial.management.exceptions.UserNotFoundException;
 import com.julio.Financial.management.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -23,20 +25,22 @@ public class UserService {
         return users.stream().map(user -> new UserDTO(user.getFirstName(), user.getLastName(), user.getEmail())).toList();
     }
     public UserDTO findById(UUID id){
-        User user = repository.findById(id).orElseThrow(() ->new EntityNotFoundException("User with id: " + id + " not found"));
+        User user = repository.findById(id).orElseThrow(UserNotFoundException::new);
         return new UserDTO(user.getFirstName(), user.getLastName(), user.getEmail());
     }
     public UserDTO findByEmail(String email){
-        User user = repository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException(("User with email: " + email + " not found")));
+        User user = repository.findByEmail(email).orElseThrow(UserNotFoundException::new);
         return new UserDTO(user.getFirstName(), user.getLastName(), user.getEmail());
     }
+
+    @Transactional
     public UserDTO updateUser(UUID id, UserDTO userDTO) {
         User userUpdate = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User with id: " + id + " not found"));
+                .orElseThrow(UserNotFoundException::new);
 
         Optional<User> existingUser = repository.findByEmail(userDTO.email());
         if (existingUser.isPresent() && !existingUser.get().getId().equals(id)) {
-            throw new IllegalArgumentException("Email already in use");
+            throw new EmailAlreadyInUse();
         }
 
         userUpdate.setFirstName(userDTO.firstName());
@@ -52,9 +56,10 @@ public class UserService {
         );
     }
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @Transactional
     public void deleteUser (UUID id){
         if (!repository.existsById(id)){
-            throw new EntityNotFoundException("User with id: " + id + " not found");
+            throw new UserNotFoundException();
         }
         repository.deleteById(id);
     }

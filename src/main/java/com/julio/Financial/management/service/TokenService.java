@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.julio.Financial.management.domain.user.User;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.julio.Financial.management.exceptions.TokenCreation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +31,7 @@ public class TokenService {
                     .sign(algorithm);
             return token;
         }catch (JWTCreationException e){
-            throw new RuntimeException("Erro while authenticating");
+            throw new TokenCreation();
         }
     }
 
