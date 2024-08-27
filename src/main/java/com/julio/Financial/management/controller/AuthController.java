@@ -9,6 +9,7 @@ import com.julio.Financial.management.exceptions.EmailAlreadyInUse;
 import com.julio.Financial.management.exceptions.UserNotFoundException;
 import com.julio.Financial.management.service.TokenService;
 import com.julio.Financial.management.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +31,7 @@ public class AuthController {
     @Autowired
     private TokenService tokenService;
 
+    @Operation(summary = "Logs in a user using email and password", description = "This method attempts to authenticate a user based on the provided email and password")
     @PostMapping("/login")
     public ResponseEntity<ResponseDTO> login(@RequestBody LoginUserDTO loginUser) {
         User user = userRepository.findByEmail(loginUser.email()).orElseThrow(UserNotFoundException::new);
@@ -40,6 +42,7 @@ public class AuthController {
         }
         return ResponseEntity.status(401).build();
     }
+    @Operation(summary = "Registers a new user account", description = " This method handles user registration")
     @PostMapping("/register")
     public ResponseEntity<ResponseDTO> register(@RequestBody RegisterUserDTO registerUser) {
         Optional<User> user = userRepository.findByEmail(registerUser.email());
