@@ -4,6 +4,7 @@ import com.julio.Financial.management.DTO.SummaryDTO;
 import com.julio.Financial.management.DTO.TransactionDTO;
 import com.julio.Financial.management.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +39,7 @@ public class TransactionController {
     }
     @PostMapping
     public ResponseEntity<TransactionDTO> createTransaction(@RequestBody TransactionDTO transactionDTO, @RequestHeader("Authorization") String token){
-        return ResponseEntity.ok(transactionService.createTransaction(transactionDTO, token));
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTransaction(transactionDTO, token));
     }
     @PutMapping("/{id}")
     public ResponseEntity<TransactionDTO> updateTransaction(@PathVariable UUID id, @RequestBody TransactionDTO transactionDTO, @RequestHeader("Authorization") String token){
